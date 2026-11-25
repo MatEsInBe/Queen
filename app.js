@@ -108,29 +108,29 @@ function simulate(n,R,q,X){
   const cand=Array.from({length:n},()=>Array(n).fill(true)),rowQ=Array(n).fill(false),colQ=Array(n).fill(false),regQ=Array(n).fill(false);
   const place=(r,c)=>{rowQ[r]=colQ[c]=regQ[R[r][c]]=true;for(let a=0;a<n;a++)for(let b=0;b<n;b++)if(a===r||b===c||R[a][b]===R[r][c]||(Math.abs(a-r)<2&&Math.abs(b-c)<2))cand[a][b]=false};
   const lst=f=>{const o=[];for(let a=0;a<n;a++)for(let b=0;b<n;b++)if(cand[a][b]&&f(a,b))o.push([a,b]);return o};
-  const log=[];let dk=null;
+  const log=[],ev={rows:[],cols:[],cells:[]};let dk=null;
   const check=()=>{for(let g=0;g<n;g++)if(!regQ[g]&&!lst((a,b)=>R[a][b]===g).length){dk={k:'g',i:g};return 'the '+nm(g)+' region'}
     for(let r=0;r<n;r++)if(!rowQ[r]&&!lst(a=>a===r).length){dk={k:'r',i:r};return 'row '+(r+1)}
     for(let c=0;c<n;c++)if(!colQ[c]&&!lst((a,b)=>b===c).length){dk={k:'c',i:c};return 'column '+(c+1)}return null};
   q.forEach(([r,c])=>place(r,c));place(X[0],X[1]);
-  let steps=0,reason=check();if(reason)return{steps,reason,log,dk};
-  const done=t=>{steps++;log.push(t);reason=check();return reason};
-  const out=()=>({steps,reason,log,dk});
+  let steps=0,reason=check();if(reason)return{steps,reason,log,dk,ev};
+  const done=(t,e)=>{steps++;log.push(t);if(e){(e.r||[]).forEach(x=>ev.rows.includes(x)||ev.rows.push(x));(e.c||[]).forEach(x=>ev.cols.includes(x)||ev.cols.push(x));(e.l||[]).forEach(x=>ev.cells.push(x))}reason=check();return reason};
+  const out=()=>({steps,reason,log,dk,ev});
   let ch=true;
   while(ch){ch=false;
-    for(let g=0;g<n;g++)if(!regQ[g]){const l=lst((a,b)=>R[a][b]===g);if(l.length===1){place(l[0][0],l[0][1]);ch=true;if(done('The '+nm(g)+' region has one free cell left, so its queen is forced at '+pos(l[0][0],l[0][1])+'.'))return out()}}
-    for(let r=0;r<n;r++)if(!rowQ[r]){const l=lst(a=>a===r);if(l.length===1){place(l[0][0],l[0][1]);ch=true;if(done('Row '+(r+1)+' has one free cell left, so its queen is forced at '+pos(l[0][0],l[0][1])+'.'))return out()}}
-    for(let c=0;c<n;c++)if(!colQ[c]){const l=lst((a,b)=>b===c);if(l.length===1){place(l[0][0],l[0][1]);ch=true;if(done('Column '+(c+1)+' has one free cell left, so its queen is forced at '+pos(l[0][0],l[0][1])+'.'))return out()}}
+    for(let g=0;g<n;g++)if(!regQ[g]){const l=lst((a,b)=>R[a][b]===g);if(l.length===1){place(l[0][0],l[0][1]);ch=true;if(done('The '+nm(g)+' region has one free cell left, so its queen is forced at '+pos(l[0][0],l[0][1])+'.',{l}))return out()}}
+    for(let r=0;r<n;r++)if(!rowQ[r]){const l=lst(a=>a===r);if(l.length===1){place(l[0][0],l[0][1]);ch=true;if(done('Row '+(r+1)+' has one free cell left, so its queen is forced at '+pos(l[0][0],l[0][1])+'.',{r:[r]}))return out()}}
+    for(let c=0;c<n;c++)if(!colQ[c]){const l=lst((a,b)=>b===c);if(l.length===1){place(l[0][0],l[0][1]);ch=true;if(done('Column '+(c+1)+' has one free cell left, so its queen is forced at '+pos(l[0][0],l[0][1])+'.',{c:[c]}))return out()}}
     const kill=l=>{let k=false;l.forEach(([a,b])=>{cand[a][b]=false;k=true});return k};
     for(let g=0;g<n;g++)if(!regQ[g]){const l=lst((a,b)=>R[a][b]===g);if(!l.length)continue;
-      if(l.every(([a])=>a===l[0][0])&&kill(lst((a,b)=>a===l[0][0]&&R[a][b]!==g))){ch=true;if(done('All free '+nm(g)+' cells are in row '+(l[0][0]+1)+', so no other color can use that row.'))return out()}
-      if(l.every(([,b])=>b===l[0][1])&&kill(lst((a,b)=>b===l[0][1]&&R[a][b]!==g))){ch=true;if(done('All free '+nm(g)+' cells are in column '+(l[0][1]+1)+', so no other color can use that column.'))return out()}}
+      if(l.every(([a])=>a===l[0][0])&&kill(lst((a,b)=>a===l[0][0]&&R[a][b]!==g))){ch=true;if(done('All free '+nm(g)+' cells are in row '+(l[0][0]+1)+', so no other color can use that row.',{r:[l[0][0]]}))return out()}
+      if(l.every(([,b])=>b===l[0][1])&&kill(lst((a,b)=>b===l[0][1]&&R[a][b]!==g))){ch=true;if(done('All free '+nm(g)+' cells are in column '+(l[0][1]+1)+', so no other color can use that column.',{c:[l[0][1]]}))return out()}}
     for(let r=0;r<n;r++)if(!rowQ[r]){const l=lst(a=>a===r);if(!l.length)continue;const g=R[l[0][0]][l[0][1]];
-      if(l.every(([a,b])=>R[a][b]===g)&&kill(lst((a,b)=>R[a][b]===g&&a!==r))){ch=true;if(done('In row '+(r+1)+' only '+nm(g)+' cells are free, so '+nm(g)+' can’t use its cells in other rows.'))return out()}}
+      if(l.every(([a,b])=>R[a][b]===g)&&kill(lst((a,b)=>R[a][b]===g&&a!==r))){ch=true;if(done('In row '+(r+1)+' only '+nm(g)+' cells are free, so '+nm(g)+' can’t use its cells in other rows.',{r:[r]}))return out()}}
     for(let c=0;c<n;c++)if(!colQ[c]){const l=lst((a,b)=>b===c);if(!l.length)continue;const g=R[l[0][0]][l[0][1]];
-      if(l.every(([a,b])=>R[a][b]===g)&&kill(lst((a,b)=>R[a][b]===g&&b!==c))){ch=true;if(done('In column '+(c+1)+' only '+nm(g)+' cells are free, so '+nm(g)+' can’t use its cells in other columns.'))return out()}}
+      if(l.every(([a,b])=>R[a][b]===g)&&kill(lst((a,b)=>R[a][b]===g&&b!==c))){ch=true;if(done('In column '+(c+1)+' only '+nm(g)+' cells are free, so '+nm(g)+' can’t use its cells in other columns.',{c:[c]}))return out()}}
   }
-  return{steps,reason:null,log,dk:null};
+  return{steps,reason:null,log,dk:null,ev};
 }
 window.QSim=simulate;
 function hintInfo(logicOnly){
@@ -204,7 +204,7 @@ function hintInfo(logicOnly){
   if(cands.length){const{x,s}=cands[0];let t;
     if(!s.reason)t='No simple deduction is left. No valid solution has a queen here, but the dead end needs deeper searching than simple steps.';
     else t='No simple deduction is left. A queen here leads to a dead end. Imagine it there:<br>'+steps(s)+'<br>Dead end: '+s.reason+' has no free cell left for its queen.';
-    return{cell:x,hl:set(dkCells(s.dk)),text:t}}
+    return{cell:x,hl:s.steps?set(s.ev.cells.map(([a,b])=>[a,b])):set(dkCells(s.dk)),lines:s.steps&&(s.ev.rows.length||s.ev.cols.length)?{rows:s.ev.rows.slice().sort((a,b)=>a-b),cols:s.ev.cols.slice().sort((a,b)=>a-b)}:null,text:t}}
   return null;
 }
 const legend=h=>'<br><small style="color:var(--mut)">Red outline: the square'+'s the hint changes.'+(h?' Grey: the rows, columns or squares behind the reasoning.':'')+'</small>';
@@ -223,7 +223,7 @@ function applyHint(info){
     HL={t:new Set([row*n+G.sol[row]]),c:new Set()};
     $('msg').innerHTML='Every other cell is ruled out, so the queen for row '+(row+1)+' goes at column '+(G.sol[row]+1)+'.';
   }
-  hintShown=true;hlT=setTimeout(()=>{HL=null;hintShown=false;$('msg').textContent=DEFMSG;draw()},6000);
+  hintShown=true;{const ok=document.createElement('button');ok.id='hok';ok.textContent='OK';ok.onclick=()=>{clearHL();draw()};$('msg').appendChild(ok)}hlT=setTimeout(()=>{HL=null;hintShown=false;$('msg').textContent=DEFMSG;draw()},10000);
   draw();save();
 }
 $('bh').onclick=()=>{if(G.done)return;applyHint(hintInfo(true)||hintInfo(false))};
